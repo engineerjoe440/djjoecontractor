@@ -12,12 +12,14 @@ capabilities for DJ Joe Contracts.
 
 # Requirements
 from datetime import datetime
-from uuid import uuid5
+from uuid import uuid4
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+# pylint: disable=no-name-in-module
 from pydantic import BaseModel
+# pylint: enable=no-name-in-module
 from fillpdf import fillpdfs
 
 HOURLY_CONTRACT_PATH = "" # TODO
@@ -49,43 +51,41 @@ class ContractForm(BaseModel):
     depositDue: datetime
     finalDue: datetime
     additionalAgreements: str
-    mealYes: bool
-    mealNo: bool
+    mealIncluded: bool
     hoursAdvance: float
     additionalMusic1: str
     additionalMusic2: str
-    requestsAllowYes: bool
-    requestsAllowNo: bool
+    requestsAllow: bool
     purchaserName: str
     purchaserTelephone: str
     purchaserEmail: str
 
-def nice_number_theorem(x: float, base: int = 5, round_down: bool = True):
+def nice_number_theorem(val: float, base: int = 5, round_down: bool = True):
     """Apply the Nice Number Theorem to find a Satisfactory Number."""
-    val = base * round(x / base)
-    if round_down and val > x:
+    val = base * round(val / base)
+    if round_down and val > val:
         val -= base
     return int(val)
 
-def travel_cost(distance: float, costPerMile: float = 2.0) -> float:
+def travel_cost(distance: float, cost_per_mile: float = 2.0) -> float:
     """Evaluate the Total Cost Associated with Travel."""
     if distance > 25:
         distance -= 25 # Remove Charge for first 25 miles
-        return nice_number_theorem(distance * costPerMile, round_down=True)
+        return nice_number_theorem(distance * cost_per_mile, round_down=True)
     else:
         return 0 # First 25 miles are free
 
 def create_contract_dict(details: ContractForm):
     """Consume the Contract Form and Generate Missing Fields."""
-    arangements = details.dict()
+    arrangements = details.dict()
     # Load Today's Date as the Date of Contracting
-    arangements["madeDay"] = datetime.now().strftime("%-m/%-d/%Y")
+    arrangements["madeDay"] = datetime.now().strftime("%-m/%-d/%Y")
     # Calculate Travel Expense Based on Distance (Excluding first 25mi)
-    arangements["travelExpense"] = travel_cost(
+    arrangements["travelExpense"] = travel_cost(
         distance=details.distance,
-        costPerMile=details.costPerMile
+        cost_per_mile=details.costPerMile
     )
-    return arangements
+    return arrangements
 
 # Application Base
 app = FastAPI()
@@ -96,7 +96,9 @@ TEMPLATES: Jinja2Templates = None
 @app.on_event("startup")
 async def startup_event():
     """Event that Only Runs When App is Starting"""
+    # pylint: disable=global-statement
     global TEMPLATES
+    # pylint: enable=global-statement
     # Mount the Static File Path
     app.mount("/static", StaticFiles(directory="static"), name="static")
     TEMPLATES = Jinja2Templates(directory="templates")
@@ -105,11 +107,12 @@ async def startup_event():
 # Main Application Response
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
+    """Web Root."""
     return TEMPLATES.TemplateResponse(
         "index.html",
         {
             "request": request,
-            "client_token": str(uuid5())
+            "client_token": str(uuid4())
         },
     )
 
